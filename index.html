@@ -59,11 +59,15 @@
 
 		<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
 		<script type="text/javascript" src="js/materialize.js"></script>
-		<script>
-		$(document).ready(function()
-		{
-			$(".button-collapse").sideNav();
-		});
+		<script type="text/javascript" src="js/handlebars-v3.0.0.js"></script>
+		<script type="text/javascript" src="js/site.js"></script>
+		<script id="class-template" type="text/x-handlebars-template">
+			<div class="entry">
+				<p>{{klas}}</p>
+				<div class="body">
+					{{body}}
+				</div>
+			</div>
 		</script>
 	</body>
 </html>
