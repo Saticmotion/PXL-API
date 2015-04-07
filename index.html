@@ -44,7 +44,7 @@
 						</div>
 					</form>
 
-					<div class="row" id="main">
+					<div class="col s12" id="main">
 					</div>
 				</div>
 			</div>
@@ -61,7 +61,7 @@
 
 			<div class="footer-copyright">
 				<div class="container">
-					&copy 2015 Gil Vertommen - Simon Verbeke
+					&copy; 2015 Gil Vertommen - Simon Verbeke
 				</div>
 			</div>
 		</footer>
@@ -70,20 +70,36 @@
 		<script type="text/javascript" src="js/materialize.js"></script>
 		<script type="text/javascript" src="js/handlebars-v3.0.0.js"></script>
 		<script type="text/javascript" src="js/site.js"></script>
+
 		<script id="class-template" type="text/x-handlebars-template">
+			<div class="row" id="class-list">
+			</div>
+		</script>
+
+		<script id="class-item-template" type="text/x-handlebars-template">
 			<div class="col s4 m3 l2 class-link" data-class="{{klas}}">
 				<a class="green-text" href="#">{{klas}} </a>
 			</div>
 		</script>
+
+		<script id="roster-template" type="text/x-handlebars-template">
+			<div class="row" id="roster">
+				<div class="col s12">
+					<a href="#" id="roster-back-button"><i class="mdi-navigation-arrow-back"></i>Klassenlijst</a>
+				</div>
+			</div>
+		</script>
+
 		<script id="roster-day-template" type="text/x-handlebars-template">
 			<div class="col s2" data-date="{{date}}">
 				<div class="row">
 				</div>
 			</div>
 		</script>
+
 		<script id="roster-course-template" type="text/x-handlebars-template">
-			<div class="col s12" data-course="{{code_olod}}">
-				<p><b>{{olod}}</b></p>
+			<div class="col s12 olod" data-course="{{code_olod}}" data-coursename="{{olod}}">
+        		<p>{{olod}}</p>
 				<p>{{lokaal}}</p>
 			</div>
 		</script>

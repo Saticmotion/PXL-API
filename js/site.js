@@ -3,6 +3,8 @@
 var baseUrl = "http://data.pxl.be/roosters/v1/";
 var templates = new Object();
 var classes;
+var ScreensEnum = Object.freeze({CLASSLIST : 0, ROSTER : 1});
+var currentScreen;
 
 $(document).ready(function(){
 	compileTemplates();
@@ -14,7 +16,9 @@ $(document).ready(function(){
 });
 
 function compileTemplates(){
-	templates["classEntry"] = Handlebars.compile($("#class-template").html());
+	templates["classList"] = Handlebars.compile($("#class-template").html());
+	templates["classEntry"] = Handlebars.compile($("#class-item-template").html());
+	templates["roster"] = Handlebars.compile($("#roster-template").html());
 	templates["rosterDayEntry"] = Handlebars.compile($("#roster-day-template").html());
 	templates["rosterCourseEntry"] = Handlebars.compile($("#roster-course-template").html());
 }
@@ -22,19 +26,34 @@ function compileTemplates(){
 function createClassList(classEntries){
 	$("#main").empty();
 
+	currentScreen = ScreensEnum.CLASSLIST;
+
+	var html = templates["classList"];
+	$("#main").append(html);
+
 	classEntries.forEach(function(entry){
 		var html = templates["classEntry"](entry);
-		$("#main").append(html);
+		$("#class-list").append(html);
 	});
 
 	$(".class-link").on("click", createRoster);
 }
 
+$("#search").on("input", function(){
+	if (currentScreen == ScreensEnum.CLASSLIST){
+		var val = $(this).val();
+		var matches = searchClassList(val);
+		createClassList(matches);
+	}
+	else if (currentScreen == ScreensEnum.ROSTER) {
+		var val = $(this).val();
+		var matches = searchRoster(val);
+	}
+});
+
 function searchClassList(searchTerm){
 	var matches = new Array();
-	searchTerm = replaceAll('\\*', '.*', searchTerm); //Replace * with match any string of any length
-	searchTerm = replaceAll('\\?', '.', searchTerm); //Replace ? with match any single character
-	searchTerm = replaceAll('[/\\\\]', '', searchTerm); //Remove forward and backslashes, because they interfere with regex searches.
+	searchTerm = replaceWildcards(searchTerm);
 	regex = new RegExp(searchTerm);
 
 	classes.forEach(function(entry){
@@ -46,36 +65,64 @@ function searchClassList(searchTerm){
 	return matches;
 }
 
-$("#search").on("input", function(){
-	var val = $(this).val();
-	var matches = searchClassList(val);
-	createClassList(matches);
-});
+function searchRoster(searchTerm){
+	searchTerm = replaceWildcards(searchTerm);
+	highlightClass = "green lighten-3"
+
+	if (searchTerm == ""){
+		$(".olod").removeClass(highlightClass);
+		return;
+	}
+
+	regex = new RegExp(searchTerm);
+
+	$(".olod").each(function(){
+		var text = $(this).data("coursename");
+
+		if (regex.test(text.toLowerCase())){
+			$(this).addClass(highlightClass)
+		} else {
+			$(this).removeClass(highlightClass);
+		}
+	})
+}
 
 function createRoster(className){
 	$("#main").empty();
 
+	currentScreen = ScreensEnum.ROSTER;
+
 	var roster = getRoster(className);
 
-	roster.forEach(function(entry){
-		var day = entry.datum2.substring(4, 6);
-		var month = entry.datum2.substring(2, 4);
-		var year = '20' + entry.datum2.substring(0, 2); //prefix 20, so jaavscript knows we mean 2015 and not 1915
-		var date = new Date(year, month - 1, day);
+	var html = templates["roster"];
+	$("#main").append(html);
+	$("#roster-back-button").on("click", function() {createClassList(classes);});
 
-		var columnForDate = $("#main").find("[data-date=" + date.getUnixTime() + "]");
+	roster.forEach(insertRosterCourse);
+}
 
-		if(!columnForDate.exists()){
-			var data = {"date":date.getUnixTime()};
-			var html = templates["rosterDayEntry"](data);
-			$("#main").append(html);
+function insertRosterDay(date){
+	var data = {"date":date.getUnixTime()};
+	var html = templates["rosterDayEntry"](data);
+	$("#roster").append(html);
 
-			columnForDate = $("#main").find("[data-date=" + date.getUnixTime() + "]");
-		}
+	columnForDate = $("#roster").find("[data-date=" + date.getUnixTime() + "]");
+}
 
-		var html = templates["rosterCourseEntry"](entry);
-		columnForDate.append(html);
-	});
+function insertRosterCourse(course){
+	var day = course.datum2.substring(4, 6);
+	var month = course.datum2.substring(2, 4);
+	var year = '20' + course.datum2.substring(0, 2); //prefix 20, so JS knows we mean 2015 and not 1915. Will cause a bug after 2100
+	var date = new Date(year, month - 1, day);
+
+	var columnForDate = $("#roster").find("[data-date=" + date.getUnixTime() + "]");
+
+	if(!columnForDate.exists()){
+		insertRosterDay(date);
+	}
+
+	var html = templates["rosterCourseEntry"](course);
+	$(".row", columnForDate).append(html);
 }
 
 //==========Helpers==========
@@ -84,12 +131,17 @@ function replaceAll(find, replace, str){
 	return str.replace(new RegExp(find, 'g'), replace);
 }
 
+function replaceWildcards(searchTerm){
+	searchTerm = replaceAll('\\*', '.*', searchTerm); //Replace * with match any string of any length
+	searchTerm = replaceAll('\\?', '.', searchTerm); //Replace ? with match any single character
+	searchTerm = replaceAll('[/\\\\]', '', searchTerm); //Remove forward and backslashes, because they interfere with regex searches.
+	return searchTerm;
+}
+
 Date.prototype.getUnixTime = function(){ 
 	//Goes from milliseconds to seconds.
 	return this.getTime() / 1000 | 0;
 };
-
-
 
 //extend jQuery with a function to check if a selector returned any element.
 $.fn.exists = function () {
@@ -98,7 +150,7 @@ $.fn.exists = function () {
 
 
 
-//Everything below here are functions to create mock data. Replace with actual API calls when possible
+//Everything below here are functions to create mock data. TODO(Simon): Replace with actual API calls when possible
 
 function getClasses(){
 	return JSON.parse(
