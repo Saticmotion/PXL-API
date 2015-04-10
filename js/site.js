@@ -21,9 +21,9 @@ function compileTemplates(){
 	templates["classEntry"] = Handlebars.compile($("#class-item-template").html());
 	templates["roster"] = Handlebars.compile($("#roster-template").html());
 	templates["rosterDayEntry"] = Handlebars.compile($("#roster-day-template").html());
+	templates["rosterDayHeader"] = Handlebars.compile($("#roster-day-header-template").html());
 	templates["rosterCourseEntry"] = Handlebars.compile($("#roster-course-template").html());
 }
-
 
 //==========Classlist==========
 
@@ -32,12 +32,16 @@ function createClassList(classEntries){
 
 	currentScreen = ScreensEnum.CLASSLIST;
 
-	var html = templates["classList"];
-	$("#main").append(html);
+	insertTemplate("classList", {}, $("#main"));
+
+	//var html = templates["classList"];
+	//$("#main").append(html);
 
 	classEntries.forEach(function(entry){
-		var html = templates["classEntry"](entry);
-		$("#class-list").append(html);
+		insertTemplate("classEntry", entry, $("#class-list"));
+
+		//var html = templates["classEntry"](entry);
+		//$("#class-list").append(html);
 	});
 
 	$(".class-link").on("click", createRoster);
@@ -102,8 +106,8 @@ function createRoster(className){
 	roster.sort(compareCourse);
 	roster = deleteDuplicateCourses(roster);
 
-	var html = templates["roster"];
-	$("#main").append(html);
+	insertTemplate("roster", {}, $("#main"));
+
 	$("#roster-back-button").on("click", function() {createClassList(classes);});
 
 	roster.forEach(insertRosterCourse);
@@ -117,22 +121,27 @@ function insertRosterCourse(course){
 	var year = '20' + course.datum2.substring(0, 2); //prefix 20, so JS knows we mean 2015 and not 1915. Will cause a bug after 2100
 	var date = new Date(year, month - 1, day);
 
-	var columnForDate = $("#roster").find("[data-date=" + date.getUnixTime() + "]");
+	var columnForDate = $("#roster.row").find("[data-date=" + date.getUnixTime() + "]");
 
 	if(!columnForDate.exists()){
 		columnForDate = insertRosterDay(date);
 	}
 
-	var html = templates["rosterCourseEntry"](course);
-	$(".row", columnForDate).append(html);
+	insertTemplate("rosterCourseEntry", course, columnForDate);
 }
  
 function insertRosterDay(date){
-	var data = {"date":date.getUnixTime()};
-	var html = templates["rosterDayEntry"](data);
-	$("#roster").append(html);
+	insertTemplate("rosterDayEntry", {"date":date.getUnixTime()}, $("#roster"));
 
-	return $("#roster").find("[data-date=" + date.getUnixTime() + "]");
+	var columnForDate = $("#roster.row").find("[data-date=" + date.getUnixTime() + "]");
+
+	insertRosterDayHeader(date, columnForDate);
+
+	return columnForDate
+}
+
+function insertRosterDayHeader(date, columnForDate){
+	insertTemplate("rosterDayHeader", {"weekday": date.getDayName()}, columnForDate)
 }
 
 function expandCourse(){
@@ -202,6 +211,11 @@ function findWithAttr(array, attr, value) {
 
 //==========Helpers==========
 
+function insertTemplate(templateName, data, target){
+	var html = templates[templateName](data);
+	target.append(html);
+}
+
 function replaceAll(find, replace, str){
 	return str.replace(new RegExp(find, 'g'), replace);
 }
@@ -216,6 +230,11 @@ function replaceWildcards(searchTerm){
 Date.prototype.getUnixTime = function(){ 
 	//Goes from milliseconds to seconds.
 	return this.getTime() / 1000 | 0;
+};
+
+Date.prototype.getDayName = function() {
+	var days = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+	return days[this.getDay()];
 };
 
 //extend jQuery with a function to check if a selector returned any element.
