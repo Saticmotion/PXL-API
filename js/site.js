@@ -3,6 +3,7 @@
 var baseUrl = "http://data.pxl.be/roosters/v1/";
 var templates = new Object();
 var classes;
+var roster;
 var ScreensEnum = Object.freeze({CLASSLIST : 0, ROSTER : 1});
 var currentScreen;
 
@@ -97,7 +98,7 @@ function createRoster(className){
 
 	currentScreen = ScreensEnum.ROSTER;
 
-	var roster = getRoster(className);
+	roster = getRoster(className);
 	roster.sort(compareCourse);
 	roster = deleteDuplicateCourses(roster);
 
@@ -106,6 +107,8 @@ function createRoster(className){
 	$("#roster-back-button").on("click", function() {createClassList(classes);});
 
 	roster.forEach(insertRosterCourse);
+
+	$(".olod").on("click", expandCourse )
 }
 
 function insertRosterCourse(course){
@@ -123,13 +126,19 @@ function insertRosterCourse(course){
 	var html = templates["rosterCourseEntry"](course);
 	$(".row", columnForDate).append(html);
 }
-
+ 
 function insertRosterDay(date){
 	var data = {"date":date.getUnixTime()};
 	var html = templates["rosterDayEntry"](data);
 	$("#roster").append(html);
 
 	return $("#roster").find("[data-date=" + date.getUnixTime() + "]");
+}
+
+function expandCourse(){
+	var olodID = $(this).data("course");
+	findWithAttr(roster, 'code_olod', olodID);
+	//TODO: Show modal.
 }
 
 //TODO(Simon): See if we still need this once the API has been fixed
@@ -181,6 +190,14 @@ function compareCourse(a, b) {
 	}
 
 	return 0;
+}
+
+function findWithAttr(array, attr, value) {
+    for(var i = 0; i < array.length; i += 1) {
+        if(array[i][attr] === value) {
+            return array[i];
+        }
+    }
 }
 
 //==========Helpers==========
