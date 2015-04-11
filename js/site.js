@@ -23,6 +23,7 @@ function compileTemplates(){
 	templates["rosterDayEntry"] = Handlebars.compile($("#roster-day-template").html());
 	templates["rosterDayHeader"] = Handlebars.compile($("#roster-day-header-template").html());
 	templates["rosterCourseEntry"] = Handlebars.compile($("#roster-course-template").html());
+	templates["courseModal"] = Handlebars.compile($("#course-modal-template").html());
 }
 
 //==========Classlist==========
@@ -112,14 +113,12 @@ function createRoster(className){
 
 	roster.forEach(insertRosterCourse);
 
-	$(".olod").on("click", expandCourse )
+	$(".olod").on("click", expandCourse);
+	$(".olod").tooltip();
 }
 
 function insertRosterCourse(course){
-	var day = course.datum2.substring(4, 6);
-	var month = course.datum2.substring(2, 4);
-	var year = '20' + course.datum2.substring(0, 2); //prefix 20, so JS knows we mean 2015 and not 1915. Will cause a bug after 2100
-	var date = new Date(year, month - 1, day);
+	var date = Date.parseCourseDate(course);
 
 	var columnForDate = $("#roster.row").find("[data-date=" + date.getUnixTime() + "]");
 
@@ -127,6 +126,7 @@ function insertRosterCourse(course){
 		columnForDate = insertRosterDay(date);
 	}
 
+	//TODO(Simon): Fix display of times
 	insertTemplate("rosterCourseEntry", course, columnForDate);
 }
  
@@ -146,8 +146,14 @@ function insertRosterDayHeader(date, columnForDate){
 
 function expandCourse(){
 	var olodID = $(this).data("course");
-	findWithAttr(roster, 'code_olod', olodID);
-	//TODO: Show modal.
+	var course = findWithAttr(roster, 'code_olod', olodID);
+	
+	course.weekday = Date.parseCourseDate(course).getDayName();
+	
+	$(".modal").remove();
+	insertTemplate("courseModal", course, $("body"));
+
+	$("#modal").openModal();
 }
 
 //TODO(Simon): See if we still need this once the API has been fixed
@@ -236,6 +242,13 @@ Date.prototype.getDayName = function() {
 	var days = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
 	return days[this.getDay()];
 };
+
+Date.parseCourseDate = function(course){
+	var day = course.datum2.substring(4, 6);
+	var month = course.datum2.substring(2, 4);
+	var year = '20' + course.datum2.substring(0, 2); //prefix 20, so JS knows we mean 2015 and not 1915. Will cause a bug after 2100
+	return new Date(year, month - 1, day);
+}
 
 //extend jQuery with a function to check if a selector returned any element.
 $.fn.exists = function () {
