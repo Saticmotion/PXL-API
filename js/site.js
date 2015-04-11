@@ -1,34 +1,36 @@
+"use strict";
 //TODO(Simon): Currently testing with mock data, because api doesn't have CORS. REMEMBER TO SWITCH TO API!
+//TODO(Simon): Make days tabbed on mobiles.
 
 var baseUrl = "http://data.pxl.be/roosters/v1/";
-var templates = new Object();
+var templates = {};
 var classes;
 var roster;
 var ScreensEnum = Object.freeze({CLASSLIST : 0, ROSTER : 1});
 var currentScreen;
 
-$(document).ready(function(){
+$(document).ready(function() {
 	compileTemplates();
 
 	$(".button-collapse").sideNav();
-	
+
 	classes = getClasses();
 	createClassList(classes);
 });
 
-function compileTemplates(){
-	templates["classList"] = Handlebars.compile($("#class-template").html());
-	templates["classEntry"] = Handlebars.compile($("#class-item-template").html());
-	templates["roster"] = Handlebars.compile($("#roster-template").html());
-	templates["rosterDayEntry"] = Handlebars.compile($("#roster-day-template").html());
-	templates["rosterDayHeader"] = Handlebars.compile($("#roster-day-header-template").html());
-	templates["rosterCourseEntry"] = Handlebars.compile($("#roster-course-template").html());
-	templates["courseModal"] = Handlebars.compile($("#course-modal-template").html());
+function compileTemplates() {
+	templates.classList = Handlebars.compile($("#class-template").html());
+	templates.classEntry = Handlebars.compile($("#class-item-template").html());
+	templates.roster = Handlebars.compile($("#roster-template").html());
+	templates.rosterDayEntry = Handlebars.compile($("#roster-day-template").html());
+	templates.rosterDayHeader = Handlebars.compile($("#roster-day-header-template").html());
+	templates.rosterCourseEntry = Handlebars.compile($("#roster-course-template").html());
+	templates.courseModal = Handlebars.compile($("#course-modal-template").html());
 }
 
 //==========Classlist==========
 
-function createClassList(classEntries){
+function createClassList(classEntries) {
 	$("#main").empty();
 
 	currentScreen = ScreensEnum.CLASSLIST;
@@ -48,25 +50,25 @@ function createClassList(classEntries){
 	$(".class-link").on("click", createRoster);
 }
 
-$("#search").on("input", function(){
-	if (currentScreen == ScreensEnum.CLASSLIST){
+$("#search").on("input", function() {
+	if (currentScreen === ScreensEnum.CLASSLIST){
 		var val = $(this).val();
 		var matches = searchClassList(val);
 		createClassList(matches);
 	}
-	else if (currentScreen == ScreensEnum.ROSTER) {
+	else if (currentScreen === ScreensEnum.ROSTER) {
 		var val = $(this).val();
-		var matches = searchRoster(val);
+		searchRoster(val);
 	}
 });
 
-function searchClassList(searchTerm){
-	var matches = new Array();
+function searchClassList(searchTerm) {
+	var matches = [];
 	searchTerm = replaceWildcards(searchTerm);
-	regex = new RegExp(searchTerm);
+	var regex = new RegExp(searchTerm);
 
 	classes.forEach(function(entry){
-		if(regex.test(entry["klas"].toLowerCase())){
+		if(regex.test(entry.klas.toLowerCase())){
 			matches.push(entry);
 		}
 	});
@@ -76,29 +78,29 @@ function searchClassList(searchTerm){
 
 //==========Roster==========
 
-function searchRoster(searchTerm){
+function searchRoster(searchTerm) {
 	searchTerm = replaceWildcards(searchTerm);
-	highlightClass = "green lighten-3"
+	var highlightClass = "green lighten-3";
 
-	if (searchTerm == ""){
+	if (searchTerm === ""){
 		$(".olod").removeClass(highlightClass);
 		return;
 	}
 
-	regex = new RegExp(searchTerm);
+	var regex = new RegExp(searchTerm);
 
 	$(".olod").each(function(){
 		var text = $(this).data("coursename");
 
 		if (regex.test(text.toLowerCase())){
-			$(this).addClass(highlightClass)
+			$(this).addClass(highlightClass);
 		} else {
 			$(this).removeClass(highlightClass);
 		}
-	})
+	});
 }
 
-function createRoster(className){
+function createRoster(className) {
 	$("#main").empty();
 
 	currentScreen = ScreensEnum.ROSTER;
@@ -117,10 +119,10 @@ function createRoster(className){
 	$(".olod").tooltip();
 }
 
-function insertRosterCourse(course){
+function insertRosterCourse(course) {
 	var date = Date.parseCourseDate(course);
 
-	var columnForDate = $("#roster.row").find("[data-date=" + date.getUnixTime() + "]");
+	var columnForDate = $("#roster").children("[data-date=" + date.getUnixTime() + "]").children(".row");
 
 	if(!columnForDate.exists()){
 		columnForDate = insertRosterDay(date);
@@ -130,21 +132,21 @@ function insertRosterCourse(course){
 	insertTemplate("rosterCourseEntry", course, columnForDate);
 }
  
-function insertRosterDay(date){
+function insertRosterDay(date) {
 	insertTemplate("rosterDayEntry", {"date":date.getUnixTime()}, $("#roster"));
 
-	var columnForDate = $("#roster.row").find("[data-date=" + date.getUnixTime() + "]");
+	var columnForDate = $("#roster").children("[data-date=" + date.getUnixTime() + "]").children(".row");
 
 	insertRosterDayHeader(date, columnForDate);
 
-	return columnForDate
+	return columnForDate;
 }
 
-function insertRosterDayHeader(date, columnForDate){
-	insertTemplate("rosterDayHeader", {"weekday": date.getDayName()}, columnForDate)
+function insertRosterDayHeader(date, columnForDate) {
+	insertTemplate("rosterDayHeader", {"weekday": date.getDayName()}, columnForDate);
 }
 
-function expandCourse(){
+function expandCourse() {
 	var olodID = $(this).data("course");
 	var course = findWithAttr(roster, 'code_olod', olodID);
 	
@@ -157,22 +159,22 @@ function expandCourse(){
 }
 
 //TODO(Simon): See if we still need this once the API has been fixed
-function deleteDuplicateCourses(courses){
+function deleteDuplicateCourses(courses) {
 	var out = [];
 	for (var i = 0; i < courses.length; i++) {
 		var a = courses[i];
 		var b = courses[i + 1];
 
 		//This happens in the last iteration
-		if(b == undefined){
+		if(b === undefined){
 			out.push(a);
 			return out;
 		}
 
-		if(compareCourse(a, b) != 0) {
+		if(compareCourse(a, b) !== 0) {
 			out.push(a);
 		}
-	};
+	}
 }
 
 function compareCourse(a, b) {
@@ -191,10 +193,10 @@ function compareCourse(a, b) {
 	}
 	//From here on, begin hour is equal, so compare end hour
 	if (a.tot_uur < b.tot_uur) {
-		return -1
+		return -1;
 	}
 	if (a.tot_uur > b.tot_uur) {
-		return 1
+		return 1;
 	}
 	//They have equal hours, so compare by name
 	if (a.code_olod < b.code_olod) {
@@ -217,23 +219,23 @@ function findWithAttr(array, attr, value) {
 
 //==========Helpers==========
 
-function insertTemplate(templateName, data, target){
+function insertTemplate(templateName, data, target) {
 	var html = templates[templateName](data);
 	target.append(html);
 }
 
-function replaceAll(find, replace, str){
+function replaceAll(find, replace, str) {
 	return str.replace(new RegExp(find, 'g'), replace);
 }
 
-function replaceWildcards(searchTerm){
+function replaceWildcards(searchTerm) {
 	searchTerm = replaceAll('\\*', '.*', searchTerm); //Replace * with match any string of any length
 	searchTerm = replaceAll('\\?', '.', searchTerm); //Replace ? with match any single character
 	searchTerm = replaceAll('[/\\\\]', '', searchTerm); //Remove forward and backslashes, because they interfere with regex searches.
 	return searchTerm;
 }
 
-Date.prototype.getUnixTime = function(){ 
+Date.prototype.getUnixTime = function() { 
 	//Goes from milliseconds to seconds.
 	return this.getTime() / 1000 | 0;
 };
@@ -243,24 +245,24 @@ Date.prototype.getDayName = function() {
 	return days[this.getDay()];
 };
 
-Date.parseCourseDate = function(course){
+Date.parseCourseDate = function(course) {
 	var day = course.datum2.substring(4, 6);
 	var month = course.datum2.substring(2, 4);
 	var year = '20' + course.datum2.substring(0, 2); //prefix 20, so JS knows we mean 2015 and not 1915. Will cause a bug after 2100
 	return new Date(year, month - 1, day);
-}
+};
 
 //extend jQuery with a function to check if a selector returned any element.
 $.fn.exists = function () {
 	return this.length !== 0;
-}
+};
 
 
 
 //Everything below here are functions to create mock data. 
 //TODO(Simon): Replace with actual API calls when possible
 
-function getClasses(){
+function getClasses() {
 	return JSON.parse(
 		'[{"klas":"1TINA","jaar":"2015"},{"klas":"1TINB","jaar":"2015"},{"klas":"1TINC","jaar":"2015"},' +
 		'{"klas":"1TIND","jaar":"2015"},{"klas":"1TINE","jaar":"2015"},{"klas":"1TINF","jaar":"2015"},' +
@@ -276,7 +278,7 @@ function getClasses(){
 		'{"klas":"2TINW","jaar":"2015"},{"klas":"2TINX","jaar":"2015"}]');
 }
 
-function getRoster(className){
+function getRoster(className) {
 	return JSON.parse(
 		'[{"groep":"Handel","lokaal":"EB041","datum":"20\/04\/15","datum2":"150420","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4537PR","ROWID":"45414530","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
 		'{"groep":"Handel","lokaal":"EB041","datum":"20\/04\/15","datum2":"150420","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4537PR","ROWID":"46239891","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
