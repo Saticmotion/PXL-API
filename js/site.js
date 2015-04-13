@@ -87,6 +87,10 @@ function searchRoster(searchTerm) {
 	$(".olod").each(function(){
 		var text = $(this).data("coursename");
 
+		if (text === undefined) {
+			return;
+		}
+
 		if (regex.test(text.toLowerCase())){
 			$(this).addClass(highlightClass);
 		} else {
@@ -302,7 +306,7 @@ function getClasses() {
 }
 
 function getRoster(className) {
-	/*return JSON.parse(
+	return JSON.parse(
 		'[{"groep":"Handel","lokaal":"EB041","datum":"20\/04\/15","datum2":"150420","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4537PR","ROWID":"45414530","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
 		'{"groep":"Handel","lokaal":"EB041","datum":"20\/04\/15","datum2":"150420","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4537PR","ROWID":"46239891","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
 		'{"groep":"Handel","lokaal":"EB241","datum":"20\/04\/15","datum2":"150420","van_uur":1030,"tot_uur":1130,"jaar":"2015","code_olod":"4536PR","ROWID":"45414576","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
@@ -330,9 +334,9 @@ function getRoster(className) {
 		'{"groep":"Handel","lokaal":"EB241","datum":"24\/04\/15","datum2":"150424","van_uur":930,"tot_uur":1130,"jaar":"2015","code_olod":"4419PR","ROWID":"45414677","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
 		'{"groep":"Handel","lokaal":"EB244","datum":"24\/04\/15","datum2":"150424","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4419PR","ROWID":"45414679","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
 		'{"groep":"Handel","lokaal":"EB241","datum":"24\/04\/15","datum2":"150424","van_uur":930,"tot_uur":1130,"jaar":"2015","code_olod":"4419PR","ROWID":"46240038","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
-		'{"groep":"Handel","lokaal":"EB244","datum":"24\/04\/15","datum2":"150424","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4419PR","ROWID":"46240040","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"}]');*/
+		'{"groep":"Handel","lokaal":"EB244","datum":"24\/04\/15","datum2":"150424","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4419PR","ROWID":"46240040","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"}]');
 
-	return JSON.parse(
+	/*return JSON.parse(
 		'[{"groep":"Handel","lokaal":"EB352","datum":"21\/04\/15","datum2":"150421","van_uur":1330,"tot_uur":1430,"jaar":"2015","code_olod":"4419PR","ROWID":"45414676","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
 		'{"groep":"Handel","lokaal":"EB352","datum":"21\/04\/15","datum2":"150421","van_uur":1330,"tot_uur":1430,"jaar":"2015","code_olod":"4419PR","ROWID":"46240037","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
 		'{"groep":"Handel","lokaal":"EB341","datum":"21\/04\/15","datum2":"150421","van_uur":1430,"tot_uur":1630,"jaar":"2015","code_olod":"4537PR","ROWID":"45414537","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
@@ -344,5 +348,5 @@ function getRoster(className) {
 		'{"groep":"Handel","lokaal":"EB241","datum":"22\/04\/15","datum2":"150422","van_uur":1030,"tot_uur":1230,"jaar":"2015","code_olod":"4536PR","ROWID":"45414584","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
 		'{"groep":"Handel","lokaal":"EB241","datum":"22\/04\/15","datum2":"150422","van_uur":1030,"tot_uur":1230,"jaar":"2015","code_olod":"4536PR","ROWID":"46239945","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
 		'{"groep":"Handel","lokaal":"EB253","datum":"22\/04\/15","datum2":"150422","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4411PR","ROWID":"45414601","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"},' +
-		'{"groep":"Handel","lokaal":"EB253","datum":"22\/04\/15","datum2":"150422","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4411PR","ROWID":"46239962","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"}]');
+		'{"groep":"Handel","lokaal":"EB253","datum":"22\/04\/15","datum2":"150422","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4411PR","ROWID":"46239962","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"}]');*/
 }
