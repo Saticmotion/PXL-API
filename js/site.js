@@ -6,8 +6,10 @@ var baseUrl = "http://data.pxl.be/roosters/v1/";
 var templates = {};
 var classes;
 var roster;
-var ScreensEnum = Object.freeze({CLASSLIST : 0, ROSTER : 1});
+var ScreensEnum = Object.freeze({CLASSLIST : 0, ROSTER : 1, ROSTER_TABBED : 2});
 var currentScreen;
+var currentClass;
+var tabbedRosterMinSize = 1000;
 
 $(document).ready(function() {
 	compileTemplates();
@@ -22,11 +24,14 @@ function compileTemplates() {
 	templates.classList = Handlebars.compile($("#class-template").html());
 	templates.classEntry = Handlebars.compile($("#class-item-template").html());
 	templates.roster = Handlebars.compile($("#roster-template").html());
-	templates.rosterDayEntry = Handlebars.compile($("#roster-day-template").html());
+	templates.rosterDay = Handlebars.compile($("#roster-day-template").html());
 	templates.rosterDayHeader = Handlebars.compile($("#roster-day-header-template").html());
-	templates.rosterCourseEntry = Handlebars.compile($("#roster-course-template").html());
+	templates.rosterCourse = Handlebars.compile($("#roster-course-template").html());
 	templates.courseModal = Handlebars.compile($("#course-modal-template").html());
 	templates.noCourseNotice = Handlebars.compile($("#no-course-notice-template").html());
+	templates.rosterTabList = Handlebars.compile($("#roster-tab-list-template").html());
+	templates.rosterTab = Handlebars.compile($("#roster-tab-template").html());
+	templates.rosterDayTabbed = Handlebars.compile($("#roster-day-tabbed-template").html());
 }
 
 //==========Classlist==========
@@ -73,6 +78,28 @@ function searchClassList(searchTerm) {
 
 //==========Roster==========
 
+$(window).resize(function(){
+	if (currentScreen !== ScreensEnum.ROSTER && currentScreen !== ScreensEnum.ROSTER_TABBED){
+		return;
+	}
+
+	if (currentScreen === ScreensEnum.ROSTER) {
+		if (window.matchMedia("(min-width:" + tabbedRosterMinSize + "px)").matches){
+			return;
+		}
+		
+		createRoster(currentClass);
+	}
+
+	if (currentScreen === ScreensEnum.ROSTER_TABBED) {
+		if (window.matchMedia("(max-width:" + tabbedRosterMinSize + "px)").matches){
+			return;
+		}
+
+		createRoster(currentClass);
+	}
+});
+
 function searchRoster(searchTerm) {
 	searchTerm = replaceWildcards(searchTerm);
 	var highlightClass = "green lighten-3";
@@ -103,6 +130,7 @@ function createRoster(className) {
 	$("#main").empty();
 
 	currentScreen = ScreensEnum.ROSTER;
+	currentClass = className;
 
 	roster = getRoster(className);
 	roster.sort(compareCourse);
@@ -115,8 +143,17 @@ function createRoster(className) {
 	var mondayDate = Date.parseCourseDate(roster[0]).getDayInThisWeek(1);
 
 	for (var i = 0; i < 5; i++) {
-		insertRosterDay(mondayDate.addDays(i));
+		if (window.matchMedia("(min-width:" + tabbedRosterMinSize + "px)").matches){
+			insertRosterDay(mondayDate.addDays(i));
+		} else {
+			insertRosterDayTabbed(mondayDate.addDays(i));
+		}
 	};
+
+	if (window.matchMedia("(max-width:" + tabbedRosterMinSize + "px)").matches){
+		$("ul.tabs").tabs();
+		currentScreen = ScreensEnum.ROSTER_TABBED;
+	}
 
 	roster.forEach(insertRosterCourse);
 
@@ -132,15 +169,29 @@ function insertRosterCourse(course) {
 	var columnForDate = $("#roster").children(getDayAttribute(date)).children(".row");
 
 	//TODO(Simon): Fix display of times
-	insertTemplate("rosterCourseEntry", course, columnForDate);
+	insertTemplate("rosterCourse", course, columnForDate);
 }
  
 function insertRosterDay(date) {
-	insertTemplate("rosterDayEntry", {"date":date.getUnixTime()}, $("#roster"));
+	insertTemplate("rosterDay", {"date":date.getUnixTime()}, $("#roster"));
 
 	var columnForDate = $("#roster").children(getDayAttribute(date)).children(".row");
 
 	insertRosterDayHeader(date, columnForDate);
+}
+
+function insertRosterDayTabbed(date) {
+	var tabs = $(".tabs");
+	var roster = $("#roster");
+
+	if (!tabs.exists()) {
+		insertTemplate("rosterTabList", {}, roster);
+		tabs = $(".tabs");
+	}
+
+	insertTemplate("rosterTab", {"date": date.getUnixTime(), "day": date.getDayName()}, tabs);
+
+	insertTemplate("rosterDayTabbed", {"date": date.getUnixTime()}, roster);
 }
 
 function insertRosterDayHeader(date, columnForDate) {

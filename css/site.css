@@ -20,3 +20,21 @@ main {
 .olod {
 	border: 2px solid rgba(0, 0, 0, 0);
 }
+
+.tabs .indicator {
+	background-color: #4CAF50;
+}
+
+@media screen and (max-width: 600px) {
+	nav .brand-logo,
+	nav .brand-logo i {
+		font-size: 1.6rem;
+	}
+}
+
+@media screen and (max-width: 400px) {
+	nav .brand-logo,
+	nav .brand-logo i {
+		font-size: 1.4rem;
+	}
+}
