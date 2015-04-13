@@ -26,6 +26,7 @@ function compileTemplates() {
 	templates.rosterDayHeader = Handlebars.compile($("#roster-day-header-template").html());
 	templates.rosterCourseEntry = Handlebars.compile($("#roster-course-template").html());
 	templates.courseModal = Handlebars.compile($("#course-modal-template").html());
+	templates.noCourseNotice = Handlebars.compile($("#no-course-notice-template").html());
 }
 
 //==========Classlist==========
@@ -37,14 +38,8 @@ function createClassList(classEntries) {
 
 	insertTemplate("classList", {}, $("#main"));
 
-	//var html = templates["classList"];
-	//$("#main").append(html);
-
 	classEntries.forEach(function(entry){
 		insertTemplate("classEntry", entry, $("#class-list"));
-
-		//var html = templates["classEntry"](entry);
-		//$("#class-list").append(html);
 	});
 
 	$(".class-link").on("click", createRoster);
@@ -113,7 +108,15 @@ function createRoster(className) {
 
 	$("#roster-back-button").on("click", function() {createClassList(classes);});
 
+	var mondayDate = Date.parseCourseDate(roster[0]).getDayInThisWeek(1);
+
+	for (var i = 0; i < 5; i++) {
+		insertRosterDay(mondayDate.addDays(i));
+	};
+
 	roster.forEach(insertRosterCourse);
+
+	insertNoticeNoCourses();
 
 	$(".olod").on("click", expandCourse);
 	$(".olod").tooltip();
@@ -122,11 +125,7 @@ function createRoster(className) {
 function insertRosterCourse(course) {
 	var date = Date.parseCourseDate(course);
 
-	var columnForDate = $("#roster").children("[data-date=" + date.getUnixTime() + "]").children(".row");
-
-	if(!columnForDate.exists()){
-		columnForDate = insertRosterDay(date);
-	}
+	var columnForDate = $("#roster").children(getDayAttribute(date)).children(".row");
 
 	//TODO(Simon): Fix display of times
 	insertTemplate("rosterCourseEntry", course, columnForDate);
@@ -135,15 +134,27 @@ function insertRosterCourse(course) {
 function insertRosterDay(date) {
 	insertTemplate("rosterDayEntry", {"date":date.getUnixTime()}, $("#roster"));
 
-	var columnForDate = $("#roster").children("[data-date=" + date.getUnixTime() + "]").children(".row");
+	var columnForDate = $("#roster").children(getDayAttribute(date)).children(".row");
 
 	insertRosterDayHeader(date, columnForDate);
-
-	return columnForDate;
 }
 
 function insertRosterDayHeader(date, columnForDate) {
 	insertTemplate("rosterDayHeader", {"weekday": date.getDayName()}, columnForDate);
+}
+
+function insertNoticeNoCourses() {
+	var columns = $("#roster").children().children(".row");
+	columns.each(function() {
+		var children = $(this).children().length;
+		if (children <= 1){
+			insertTemplate("noCourseNotice", {}, $(this));
+		}
+	});
+}
+
+function getDayAttribute(date) {
+	return "[data-date=" + date.getUnixTime() + "]"
 }
 
 function expandCourse() {
@@ -235,15 +246,27 @@ function replaceWildcards(searchTerm) {
 	return searchTerm;
 }
 
+Date.days = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+
 Date.prototype.getUnixTime = function() { 
 	//Goes from milliseconds to seconds.
 	return this.getTime() / 1000 | 0;
 };
 
 Date.prototype.getDayName = function() {
-	var days = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
-	return days[this.getDay()];
+	return Date.days[this.getDay()];
 };
+
+Date.prototype.getDayInThisWeek = function(dayIndex) {
+	//First, subtract days to day 0, then add the day we want.
+	return this.addDays(-this.getDay() + dayIndex);
+}
+
+Date.prototype.addDays = function(days){	
+    var dat = new Date(this.valueOf());
+    dat.setDate(dat.getDate() + days);
+    return dat;
+}
 
 Date.parseCourseDate = function(course) {
 	var day = course.datum2.substring(4, 6);
@@ -279,7 +302,7 @@ function getClasses() {
 }
 
 function getRoster(className) {
-	return JSON.parse(
+	/*return JSON.parse(
 		'[{"groep":"Handel","lokaal":"EB041","datum":"20\/04\/15","datum2":"150420","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4537PR","ROWID":"45414530","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
 		'{"groep":"Handel","lokaal":"EB041","datum":"20\/04\/15","datum2":"150420","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4537PR","ROWID":"46239891","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
 		'{"groep":"Handel","lokaal":"EB241","datum":"20\/04\/15","datum2":"150420","van_uur":1030,"tot_uur":1130,"jaar":"2015","code_olod":"4536PR","ROWID":"45414576","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
@@ -307,5 +330,19 @@ function getRoster(className) {
 		'{"groep":"Handel","lokaal":"EB241","datum":"24\/04\/15","datum2":"150424","van_uur":930,"tot_uur":1130,"jaar":"2015","code_olod":"4419PR","ROWID":"45414677","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
 		'{"groep":"Handel","lokaal":"EB244","datum":"24\/04\/15","datum2":"150424","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4419PR","ROWID":"45414679","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
 		'{"groep":"Handel","lokaal":"EB241","datum":"24\/04\/15","datum2":"150424","van_uur":930,"tot_uur":1130,"jaar":"2015","code_olod":"4419PR","ROWID":"46240038","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
-		'{"groep":"Handel","lokaal":"EB244","datum":"24\/04\/15","datum2":"150424","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4419PR","ROWID":"46240040","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"}]');
+		'{"groep":"Handel","lokaal":"EB244","datum":"24\/04\/15","datum2":"150424","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4419PR","ROWID":"46240040","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"}]');*/
+
+	return JSON.parse(
+		'[{"groep":"Handel","lokaal":"EB352","datum":"21\/04\/15","datum2":"150421","van_uur":1330,"tot_uur":1430,"jaar":"2015","code_olod":"4419PR","ROWID":"45414676","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
+		'{"groep":"Handel","lokaal":"EB352","datum":"21\/04\/15","datum2":"150421","van_uur":1330,"tot_uur":1430,"jaar":"2015","code_olod":"4419PR","ROWID":"46240037","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
+		'{"groep":"Handel","lokaal":"EB341","datum":"21\/04\/15","datum2":"150421","van_uur":1430,"tot_uur":1630,"jaar":"2015","code_olod":"4537PR","ROWID":"45414537","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
+		'{"groep":"Handel","lokaal":"EB134","datum":"21\/04\/15","datum2":"150421","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4420PR","ROWID":"45414549","klas":"1TINB","olod":"Math for IT - PR (2TIN P2)","code_docent":"GoPa","docent":"Gonnissen Patrick"},' +
+		'{"groep":"Handel","lokaal":"EB341","datum":"21\/04\/15","datum2":"150421","van_uur":1430,"tot_uur":1630,"jaar":"2015","code_olod":"4537PR","ROWID":"46239898","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
+		'{"groep":"Handel","lokaal":"EB134","datum":"21\/04\/15","datum2":"150421","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4420PR","ROWID":"46239910","klas":"1TINB","olod":"Math for IT - PR (2TIN P2)","code_docent":"GoPa","docent":"Gonnissen Patrick"},' +
+		'{"groep":"Handel","lokaal":"EB121","datum":"21\/04\/15","datum2":"150421","van_uur":1230,"tot_uur":1330,"jaar":"2015","code_olod":"4536PR","ROWID":"45414583","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
+		'{"groep":"Handel","lokaal":"EB121","datum":"21\/04\/15","datum2":"150421","van_uur":1230,"tot_uur":1330,"jaar":"2015","code_olod":"4536PR","ROWID":"46239944","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
+		'{"groep":"Handel","lokaal":"EB241","datum":"22\/04\/15","datum2":"150422","van_uur":1030,"tot_uur":1230,"jaar":"2015","code_olod":"4536PR","ROWID":"45414584","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
+		'{"groep":"Handel","lokaal":"EB241","datum":"22\/04\/15","datum2":"150422","van_uur":1030,"tot_uur":1230,"jaar":"2015","code_olod":"4536PR","ROWID":"46239945","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
+		'{"groep":"Handel","lokaal":"EB253","datum":"22\/04\/15","datum2":"150422","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4411PR","ROWID":"45414601","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"},' +
+		'{"groep":"Handel","lokaal":"EB253","datum":"22\/04\/15","datum2":"150422","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4411PR","ROWID":"46239962","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"}]');
 }
