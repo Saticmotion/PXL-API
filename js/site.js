@@ -1,23 +1,22 @@
 "use strict";
-//TODO(Simon): Currently testing with mock data, because api doesn't have CORS. REMEMBER TO SWITCH TO API!
-//TODO(Simon): Make days tabbed on mobiles.
 
-var baseUrl = "http://data.pxl.be/roosters/v1/";
+var baseUrl = "http://localhost/pxl-api-opendata/v1/" /*"http://data.pxl.be/roosters/v1/"*/;
 var templates = {};
+
 var classes;
 var roster;
+
 var ScreensEnum = Object.freeze({CLASSLIST : 0, ROSTER : 1, ROSTER_TABBED : 2});
 var currentScreen;
-var currentClass;
-var tabbedRosterMinSize = 1000;
+
+var tabbedRosterMinSize = 600;
 
 $(document).ready(function() {
 	compileTemplates();
 
 	$(".button-collapse").sideNav();
 
-	classes = getClasses();
-	createClassList(classes);
+	getClasses();
 });
 
 function compileTemplates() {
@@ -32,12 +31,14 @@ function compileTemplates() {
 	templates.rosterTabList = Handlebars.compile($("#roster-tab-list-template").html());
 	templates.rosterTab = Handlebars.compile($("#roster-tab-template").html());
 	templates.rosterDayTabbed = Handlebars.compile($("#roster-day-tabbed-template").html());
+	templates.noConnectionNotice = Handlebars.compile($("#no-connection-notice-template").html());
+	templates.loadingIndicator = Handlebars.compile($("#loading-indicator-template").html());
 }
 
 //==========Classlist==========
 
 function createClassList(classEntries) {
-	$("#main").empty();
+	clearMain();
 
 	currentScreen = ScreensEnum.CLASSLIST;
 
@@ -47,7 +48,7 @@ function createClassList(classEntries) {
 		insertTemplate("classEntry", entry, $("#class-list"));
 	});
 
-	$(".class-link").on("click", createRoster);
+	$(".class-link").on("click", getRoster);
 }
 
 $("#search").on("input", function() {
@@ -76,6 +77,23 @@ function searchClassList(searchTerm) {
 	return matches;
 }
 
+//=====Miscellaneous display stuff======
+
+function noConnectionNotice() {
+	clearMain();
+	insertTemplate("noConnectionNotice", {}, $("#main"));
+}
+
+function loadingIndicator() {
+	//TODO(Simon): Find a way to introduce an artificial delay here
+	clearMain();
+	insertTemplate("loadingIndicator", {}, $("#main"));
+}
+
+function clearMain() {
+	$("#main").empty();
+}
+
 //==========Roster==========
 
 $(window).resize(function(){
@@ -88,7 +106,7 @@ $(window).resize(function(){
 			return;
 		}
 		
-		createRoster(currentClass);
+		refreshRoster();
 	}
 
 	if (currentScreen === ScreensEnum.ROSTER_TABBED) {
@@ -96,7 +114,7 @@ $(window).resize(function(){
 			return;
 		}
 
-		createRoster(currentClass);
+		refreshRoster();
 	}
 });
 
@@ -126,15 +144,10 @@ function searchRoster(searchTerm) {
 	});
 }
 
-function createRoster(className) {
-	$("#main").empty();
+function refreshRoster() {
+	clearMain();
 
 	currentScreen = ScreensEnum.ROSTER;
-	currentClass = className;
-
-	roster = getRoster(className);
-	roster.sort(compareCourse);
-	roster = deleteDuplicateCourses(roster);
 
 	insertTemplate("roster", {}, $("#main"));
 
@@ -148,7 +161,7 @@ function createRoster(className) {
 		} else {
 			insertRosterDayTabbed(mondayDate.addDays(i));
 		}
-	};
+	}
 
 	if (window.matchMedia("(max-width:" + tabbedRosterMinSize + "px)").matches){
 		$("ul.tabs").tabs();
@@ -209,7 +222,7 @@ function insertNoticeNoCourses() {
 }
 
 function getDayAttribute(date) {
-	return "[data-date=" + date.getUnixTime() + "]"
+	return "[data-date=" + date.getUnixTime() + "]";
 }
 
 function expandCourse() {
@@ -275,14 +288,6 @@ function compareCourse(a, b) {
 	return 0;
 }
 
-function findWithAttr(array, attr, value) {
-    for(var i = 0; i < array.length; i += 1) {
-        if(array[i][attr] === value) {
-            return array[i];
-        }
-    }
-}
-
 //==========Helpers==========
 
 function insertTemplate(templateName, data, target) {
@@ -301,6 +306,14 @@ function replaceWildcards(searchTerm) {
 	return searchTerm;
 }
 
+function findWithAttr(array, attr, value) {
+    for(var i = 0; i < array.length; i += 1) {
+        if(array[i][attr] === value) {
+            return array[i];
+        }
+    }
+}
+
 Date.days = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
 
 Date.prototype.getUnixTime = function() { 
@@ -315,13 +328,13 @@ Date.prototype.getDayName = function() {
 Date.prototype.getDayInThisWeek = function(dayIndex) {
 	//First, subtract days to day 0, then add the day we want.
 	return this.addDays(-this.getDay() + dayIndex);
-}
+};
 
 Date.prototype.addDays = function(days){	
     var dat = new Date(this.valueOf());
     dat.setDate(dat.getDate() + days);
     return dat;
-}
+};
 
 Date.parseCourseDate = function(course) {
 	var day = course.datum2.substring(4, 6);
@@ -335,69 +348,65 @@ $.fn.exists = function () {
 	return this.length !== 0;
 };
 
-
-
 //Everything below here are functions to create mock data. 
-//TODO(Simon): Replace with actual API calls when possible
 
 function getClasses() {
-	return JSON.parse(
-		'[{"klas":"1TINA","jaar":"2015"},{"klas":"1TINB","jaar":"2015"},{"klas":"1TINC","jaar":"2015"},' +
-		'{"klas":"1TIND","jaar":"2015"},{"klas":"1TINE","jaar":"2015"},{"klas":"1TINF","jaar":"2015"},' +
-		'{"klas":"1TINH","jaar":"2015"},{"klas":"1TINI","jaar":"2015"},{"klas":"1TINJ","jaar":"2015"},' +
-		'{"klas":"1TINK","jaar":"2015"},{"klas":"1TINL","jaar":"2015"},{"klas":"2TINA","jaar":"2015"},' +
-		'{"klas":"2TINB","jaar":"2015"},{"klas":"2TINC","jaar":"2015"},{"klas":"2TIND","jaar":"2015"},' +
-		'{"klas":"2TINE","jaar":"2015"},{"klas":"2TINF","jaar":"2015"},{"klas":"2TING","jaar":"2015"},' +
-		'{"klas":"2TINH","jaar":"2015"},{"klas":"2TINI","jaar":"2015"},{"klas":"2TINJ","jaar":"2015"},' +
-		'{"klas":"2TINK","jaar":"2015"},{"klas":"2TINL","jaar":"2015"},{"klas":"2TINM","jaar":"2015"},' +
-		'{"klas":"2TINN","jaar":"2015"},{"klas":"2TINO","jaar":"2015"},{"klas":"2TINP","jaar":"2015"},' +
-		'{"klas":"2TINQ","jaar":"2015"},{"klas":"2TINR","jaar":"2015"},{"klas":"2TINS","jaar":"2015"},' +
-		'{"klas":"2TINT","jaar":"2015"},{"klas":"2TINU","jaar":"2015"},{"klas":"2TINV","jaar":"2015"},' +
-		'{"klas":"2TINW","jaar":"2015"},{"klas":"2TINX","jaar":"2015"}]');
+	var scriptUrl = baseUrl + "klassen";
+
+	loadingIndicator();
+
+	$.ajax({
+		url: scriptUrl,
+		type: 'get',
+		dataType: 'html',
+		async: true,
+		success: function(data) {
+			classes = JSON.parse(data);
+			localStorage.setItem("classes", JSON.stringify(classes));
+			createClassList(classes);
+		},
+		error: function() {
+			classes = JSON.parse(localStorage.getItem("classes"));
+
+			if (classes === "") {
+				noConnectionNotice();
+			} else {
+				createClassList(classes);
+			}
+		}
+	});
 }
 
-function getRoster(className) {
-	return JSON.parse(
-		'[{"groep":"Handel","lokaal":"EB041","datum":"20\/04\/15","datum2":"150420","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4537PR","ROWID":"45414530","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
-		'{"groep":"Handel","lokaal":"EB041","datum":"20\/04\/15","datum2":"150420","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4537PR","ROWID":"46239891","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
-		'{"groep":"Handel","lokaal":"EB241","datum":"20\/04\/15","datum2":"150420","van_uur":1030,"tot_uur":1130,"jaar":"2015","code_olod":"4536PR","ROWID":"45414576","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
-		'{"groep":"Handel","lokaal":"EB041","datum":"20\/04\/15","datum2":"150420","van_uur":830,"tot_uur":930,"jaar":"2015","code_olod":"4411PR","ROWID":"45414592","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"},' +
-		'{"groep":"Handel","lokaal":"EB241","datum":"20\/04\/15","datum2":"150420","van_uur":1030,"tot_uur":1130,"jaar":"2015","code_olod":"4536PR","ROWID":"46239937","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
-		'{"groep":"Handel","lokaal":"EB041","datum":"20\/04\/15","datum2":"150420","van_uur":830,"tot_uur":930,"jaar":"2015","code_olod":"4411PR","ROWID":"46239953","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"},' +
-		'{"groep":"Handel","lokaal":"EB352","datum":"21\/04\/15","datum2":"150421","van_uur":1330,"tot_uur":1430,"jaar":"2015","code_olod":"4419PR","ROWID":"45414676","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
-		'{"groep":"Handel","lokaal":"EB352","datum":"21\/04\/15","datum2":"150421","van_uur":1330,"tot_uur":1430,"jaar":"2015","code_olod":"4419PR","ROWID":"46240037","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
-		'{"groep":"Handel","lokaal":"EB341","datum":"21\/04\/15","datum2":"150421","van_uur":1430,"tot_uur":1630,"jaar":"2015","code_olod":"4537PR","ROWID":"45414537","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
-		'{"groep":"Handel","lokaal":"EB134","datum":"21\/04\/15","datum2":"150421","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4420PR","ROWID":"45414549","klas":"1TINB","olod":"Math for IT - PR (2TIN P2)","code_docent":"GoPa","docent":"Gonnissen Patrick"},' +
-		'{"groep":"Handel","lokaal":"EB341","datum":"21\/04\/15","datum2":"150421","van_uur":1430,"tot_uur":1630,"jaar":"2015","code_olod":"4537PR","ROWID":"46239898","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
-		'{"groep":"Handel","lokaal":"EB134","datum":"21\/04\/15","datum2":"150421","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4420PR","ROWID":"46239910","klas":"1TINB","olod":"Math for IT - PR (2TIN P2)","code_docent":"GoPa","docent":"Gonnissen Patrick"},' +
-		'{"groep":"Handel","lokaal":"EB121","datum":"21\/04\/15","datum2":"150421","van_uur":1230,"tot_uur":1330,"jaar":"2015","code_olod":"4536PR","ROWID":"45414583","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
-		'{"groep":"Handel","lokaal":"EB121","datum":"21\/04\/15","datum2":"150421","van_uur":1230,"tot_uur":1330,"jaar":"2015","code_olod":"4536PR","ROWID":"46239944","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
-		'{"groep":"Handel","lokaal":"EB241","datum":"22\/04\/15","datum2":"150422","van_uur":1030,"tot_uur":1230,"jaar":"2015","code_olod":"4536PR","ROWID":"45414584","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
-		'{"groep":"Handel","lokaal":"EB241","datum":"22\/04\/15","datum2":"150422","van_uur":1030,"tot_uur":1230,"jaar":"2015","code_olod":"4536PR","ROWID":"46239945","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
-		'{"groep":"Handel","lokaal":"EB253","datum":"22\/04\/15","datum2":"150422","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4411PR","ROWID":"45414601","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"},' +
-		'{"groep":"Handel","lokaal":"EB253","datum":"22\/04\/15","datum2":"150422","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4411PR","ROWID":"46239962","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"},' +
-		'{"groep":"Handel","lokaal":"EB253","datum":"22\/04\/15","datum2":"150422","van_uur":1330,"tot_uur":1430,"jaar":"2015","code_olod":"4411PR","ROWID":"46239964","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"},' +
-		'{"groep":"Handel","lokaal":"EB152","datum":"23\/04\/15","datum2":"150423","van_uur":1330,"tot_uur":1530,"jaar":"2015","code_olod":"4420PR","ROWID":"45414692","klas":"1TINB","olod":"Math for IT - PR (2TIN P2)","code_docent":"TaHe","docent":"Tans Heidi"},' +
-		'{"groep":"Handel","lokaal":"EB152","datum":"23\/04\/15","datum2":"150423","van_uur":1330,"tot_uur":1530,"jaar":"2015","code_olod":"4420PR","ROWID":"46240053","klas":"1TINB","olod":"Math for IT - PR (2TIN P2)","code_docent":"TaHe","docent":"Tans Heidi"},' +
-		'{"groep":"Handel","lokaal":"EB152","datum":"23\/04\/15","datum2":"150423","van_uur":1230,"tot_uur":1330,"jaar":"2015","code_olod":"4537PR","ROWID":"45414539","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
-		'{"groep":"Handel","lokaal":"EB152","datum":"23\/04\/15","datum2":"150423","van_uur":1230,"tot_uur":1330,"jaar":"2015","code_olod":"4537PR","ROWID":"46239900","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
-		'{"groep":"Handel","lokaal":"EB246","datum":"23\/04\/15","datum2":"150423","van_uur":1030,"tot_uur":1130,"jaar":"2015","code_olod":"4411PR","ROWID":"45414603","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"},' +
-		'{"groep":"Handel","lokaal":"EB241","datum":"24\/04\/15","datum2":"150424","van_uur":930,"tot_uur":1130,"jaar":"2015","code_olod":"4419PR","ROWID":"45414677","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
-		'{"groep":"Handel","lokaal":"EB244","datum":"24\/04\/15","datum2":"150424","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4419PR","ROWID":"45414679","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
-		'{"groep":"Handel","lokaal":"EB241","datum":"24\/04\/15","datum2":"150424","van_uur":930,"tot_uur":1130,"jaar":"2015","code_olod":"4419PR","ROWID":"46240038","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
-		'{"groep":"Handel","lokaal":"EB244","datum":"24\/04\/15","datum2":"150424","van_uur":1130,"tot_uur":1230,"jaar":"2015","code_olod":"4419PR","ROWID":"46240040","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"}]');
+function getRoster(target) {
+	var className = target.currentTarget.dataset["class"];
+	//TODO(Simon): fix this once API has the option to get by date. 
+	//%25 passes the procent sign, the wildcard for SQL LIKE
+	var scriptUrl = baseUrl + "klassen/" + className + "/vakken/%25";
+	
+	loadingIndicator();
 
-	/*return JSON.parse(
-		'[{"groep":"Handel","lokaal":"EB352","datum":"21\/04\/15","datum2":"150421","van_uur":1330,"tot_uur":1430,"jaar":"2015","code_olod":"4419PR","ROWID":"45414676","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
-		'{"groep":"Handel","lokaal":"EB352","datum":"21\/04\/15","datum2":"150421","van_uur":1330,"tot_uur":1430,"jaar":"2015","code_olod":"4419PR","ROWID":"46240037","klas":"1TINB","olod":"Communication skills 1 - PR (2TIN P2)","code_docent":"SlKi","docent":"Sleurs Kim"},' +
-		'{"groep":"Handel","lokaal":"EB341","datum":"21\/04\/15","datum2":"150421","van_uur":1430,"tot_uur":1630,"jaar":"2015","code_olod":"4537PR","ROWID":"45414537","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
-		'{"groep":"Handel","lokaal":"EB134","datum":"21\/04\/15","datum2":"150421","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4420PR","ROWID":"45414549","klas":"1TINB","olod":"Math for IT - PR (2TIN P2)","code_docent":"GoPa","docent":"Gonnissen Patrick"},' +
-		'{"groep":"Handel","lokaal":"EB341","datum":"21\/04\/15","datum2":"150421","van_uur":1430,"tot_uur":1630,"jaar":"2015","code_olod":"4537PR","ROWID":"46239898","klas":"1TINB","olod":"SQL - PR (WA)","code_docent":"GoIs","docent":"Godfrind Isabelle"},' +
-		'{"groep":"Handel","lokaal":"EB134","datum":"21\/04\/15","datum2":"150421","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4420PR","ROWID":"46239910","klas":"1TINB","olod":"Math for IT - PR (2TIN P2)","code_docent":"GoPa","docent":"Gonnissen Patrick"},' +
-		'{"groep":"Handel","lokaal":"EB121","datum":"21\/04\/15","datum2":"150421","van_uur":1230,"tot_uur":1330,"jaar":"2015","code_olod":"4536PR","ROWID":"45414583","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
-		'{"groep":"Handel","lokaal":"EB121","datum":"21\/04\/15","datum2":"150421","van_uur":1230,"tot_uur":1330,"jaar":"2015","code_olod":"4536PR","ROWID":"46239944","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
-		'{"groep":"Handel","lokaal":"EB241","datum":"22\/04\/15","datum2":"150422","van_uur":1030,"tot_uur":1230,"jaar":"2015","code_olod":"4536PR","ROWID":"45414584","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
-		'{"groep":"Handel","lokaal":"EB241","datum":"22\/04\/15","datum2":"150422","van_uur":1030,"tot_uur":1230,"jaar":"2015","code_olod":"4536PR","ROWID":"46239945","klas":"1TINB","olod":"Web Essentials - PR (2TIN P2)","code_docent":"JaGr","docent":"Janssen Greta"},' +
-		'{"groep":"Handel","lokaal":"EB253","datum":"22\/04\/15","datum2":"150422","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4411PR","ROWID":"45414601","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"},' +
-		'{"groep":"Handel","lokaal":"EB253","datum":"22\/04\/15","datum2":"150422","van_uur":830,"tot_uur":1030,"jaar":"2015","code_olod":"4411PR","ROWID":"46239962","klas":"1TINB","olod":".Net Essentials - PR (2TIN P2)","code_docent":"KrRe","docent":"Krekels Reinaut"}]');*/
+	$.ajax({
+		url: scriptUrl,
+		type: 'get',
+		dataType: 'html',
+		async: true,
+		success: function(data) {
+			roster = JSON.parse(data);
+			roster.sort(compareCourse);
+			roster = deleteDuplicateCourses(roster);
+
+			localStorage.setItem("roster-" + className, JSON.stringify(roster));
+			
+			refreshRoster();
+		},
+		error: function() {
+			roster = JSON.parse(localStorage.getItem("roster-" + className));
+
+			if (roster === null) {
+				noConnectionNotice();
+			} else {
+				refreshRoster();
+			}
+		}
+	});
 }
