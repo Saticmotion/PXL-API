@@ -47,7 +47,7 @@
 			</div>
 		</main>
 
-		<footer class="page-footer green">
+		<footer class="page-footer green darken-1">
 			<div class="container">
 				<div class="row">
 					<div class="col l6 s12">
@@ -81,10 +81,24 @@
 
 		<script id="roster-template" type="text/x-handlebars-template">
 			<div class="row" id="roster">
-				<div class="col s12">
+				<div class="col s6">
 					<a href="#" id="roster-back-button"><i class="mdi-navigation-arrow-back"></i>Klassenlijst</a>
 				</div>
 			</div>
+		</script>
+
+		<script id="favorite-button-template" type="text/x-handlebars-template">
+				<div class="col s6" id="favorite">
+					{{#unless favorited}}
+						<a class="waves-effect waves-light btn right green darken-2">
+							<i class="mdi-action-favorite-outline left"></i>Opslaan
+						</a>
+					{{else}}
+						<a class="waves-effect waves-light btn right green darken-2">
+							<i class="mdi-action-favorite left"></i>Opgeslagen
+						</a>
+					{{/unless}}
+				</div>
 		</script>
 
 		<script id="roster-tab-list-template" type="text/x-handlebars-template">

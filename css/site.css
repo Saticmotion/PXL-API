@@ -25,6 +25,10 @@ main {
 	background-color: #4CAF50;
 }
 
+#favorite {
+	padding-bottom: 10px;
+}
+
 @media screen and (max-width: 600px) {
 	nav .brand-logo,
 	nav .brand-logo i {

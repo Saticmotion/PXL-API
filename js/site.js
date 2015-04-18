@@ -4,6 +4,7 @@ var baseUrl = "http://localhost/pxl-api-opendata/v1/" /*"http://data.pxl.be/roos
 var templates = {};
 
 var classes;
+var currentClass;
 var roster;
 
 var ScreensEnum = Object.freeze({CLASSLIST : 0, ROSTER : 1, ROSTER_TABBED : 2});
@@ -33,6 +34,7 @@ function compileTemplates() {
 	templates.rosterDayTabbed = Handlebars.compile($("#roster-day-tabbed-template").html());
 	templates.noConnectionNotice = Handlebars.compile($("#no-connection-notice-template").html());
 	templates.loadingIndicator = Handlebars.compile($("#loading-indicator-template").html());
+	templates.favoriteButton = Handlebars.compile($("#favorite-button-template").html());
 }
 
 //==========Classlist==========
@@ -42,10 +44,10 @@ function createClassList(classEntries) {
 
 	currentScreen = ScreensEnum.CLASSLIST;
 
-	insertTemplate("classList", {}, $("#main"));
+	appendTemplate("classList", {}, $("#main"));
 
 	classEntries.forEach(function(entry){
-		insertTemplate("classEntry", entry, $("#class-list"));
+		appendTemplate("classEntry", entry, $("#class-list"));
 	});
 
 	$(".class-link").on("click", getRoster);
@@ -81,17 +83,44 @@ function searchClassList(searchTerm) {
 
 function noConnectionNotice() {
 	clearMain();
-	insertTemplate("noConnectionNotice", {}, $("#main"));
+	appendTemplate("noConnectionNotice", {}, $("#main"));
 }
 
 function loadingIndicator() {
 	//TODO(Simon): Find a way to introduce an artificial delay here
 	clearMain();
-	insertTemplate("loadingIndicator", {}, $("#main"));
+	appendTemplate("loadingIndicator", {}, $("#main"));
 }
 
 function clearMain() {
 	$("#main").empty();
+}
+
+function insertFavoriteButton() {
+	var saved = localStorage.getItem("favorited");
+	var favorited = saved === currentClass;
+
+	$("#favorite").remove();
+	appendTemplate("favoriteButton", {"favorited" : favorited}, $("#roster"));
+
+	$("#favorite .btn").on("click", function () {
+		toggleFavoriteButton();
+	});
+}
+
+function toggleFavoriteButton() {
+	var button = $("#favorite .btn");
+
+	//TODO(Simon): This is ugly, fix this.
+	if ($(".mdi-action-favorite", button).exists()){
+		localStorage.setItem("favorited", "");
+		button.html('<i class="mdi-action-favorite-outline left"></i>Opslaan')
+		console.log("unselect");
+	} else {
+		localStorage.setItem("favorited", currentClass);		
+		button.html('<i class="mdi-action-favorite left"></i>Opgeslagen')
+		console.log("select");
+	}
 }
 
 //==========Roster==========
@@ -149,7 +178,8 @@ function refreshRoster() {
 
 	currentScreen = ScreensEnum.ROSTER;
 
-	insertTemplate("roster", {}, $("#main"));
+	appendTemplate("roster", {}, $("#main"));
+	insertFavoriteButton();
 
 	$("#roster-back-button").on("click", function() {createClassList(classes);});
 
@@ -182,11 +212,11 @@ function insertRosterCourse(course) {
 	var columnForDate = $("#roster").children(getDayAttribute(date)).children(".row");
 
 	//TODO(Simon): Fix display of times
-	insertTemplate("rosterCourse", course, columnForDate);
+	appendTemplate("rosterCourse", course, columnForDate);
 }
  
 function insertRosterDay(date) {
-	insertTemplate("rosterDay", {"date":date.getUnixTime()}, $("#roster"));
+	appendTemplate("rosterDay", {"date":date.getUnixTime()}, $("#roster"));
 
 	var columnForDate = $("#roster").children(getDayAttribute(date)).children(".row");
 
@@ -198,17 +228,17 @@ function insertRosterDayTabbed(date) {
 	var roster = $("#roster");
 
 	if (!tabs.exists()) {
-		insertTemplate("rosterTabList", {}, roster);
+		appendTemplate("rosterTabList", {}, roster);
 		tabs = $(".tabs");
 	}
 
-	insertTemplate("rosterTab", {"date": date.getUnixTime(), "day": date.getDayName()}, tabs);
+	appendTemplate("rosterTab", {"date": date.getUnixTime(), "day": date.getDayName()}, tabs);
 
-	insertTemplate("rosterDayTabbed", {"date": date.getUnixTime()}, roster);
+	appendTemplate("rosterDayTabbed", {"date": date.getUnixTime()}, roster);
 }
 
 function insertRosterDayHeader(date, columnForDate) {
-	insertTemplate("rosterDayHeader", {"weekday": date.getDayName()}, columnForDate);
+	appendTemplate("rosterDayHeader", {"weekday": date.getDayName()}, columnForDate);
 }
 
 function insertNoticeNoCourses() {
@@ -216,7 +246,7 @@ function insertNoticeNoCourses() {
 	columns.each(function() {
 		var children = $(this).children().length;
 		if (children <= 1){
-			insertTemplate("noCourseNotice", {}, $(this));
+			appendTemplate("noCourseNotice", {}, $(this));
 		}
 	});
 }
@@ -232,7 +262,7 @@ function expandCourse() {
 	course.weekday = Date.parseCourseDate(course).getDayName();
 	
 	$(".modal").remove();
-	insertTemplate("courseModal", course, $("body"));
+	appendTemplate("courseModal", course, $("body"));
 
 	$("#modal").openModal();
 }
@@ -290,7 +320,12 @@ function compareCourse(a, b) {
 
 //==========Helpers==========
 
-function insertTemplate(templateName, data, target) {
+function prependTemplate(templateName, data, target) {
+	var html = templates[templateName](data);
+	target.prepend(html);
+}
+
+function appendTemplate(templateName, data, target) {
 	var html = templates[templateName](data);
 	target.append(html);
 }
@@ -378,10 +413,10 @@ function getClasses() {
 }
 
 function getRoster(target) {
-	var className = target.currentTarget.dataset["class"];
+	currentClass = target.currentTarget.dataset["class"];
 	//TODO(Simon): fix this once API has the option to get by date. 
 	//%25 passes the procent sign, the wildcard for SQL LIKE
-	var scriptUrl = baseUrl + "klassen/" + className + "/vakken/%25";
+	var scriptUrl = baseUrl + "klassen/" + currentClass + "/vakken/%25";
 	
 	loadingIndicator();
 
@@ -395,12 +430,12 @@ function getRoster(target) {
 			roster.sort(compareCourse);
 			roster = deleteDuplicateCourses(roster);
 
-			localStorage.setItem("roster-" + className, JSON.stringify(roster));
+			localStorage.setItem("roster-" + currentClass, JSON.stringify(roster));
 			
 			refreshRoster();
 		},
 		error: function() {
-			roster = JSON.parse(localStorage.getItem("roster-" + className));
+			roster = JSON.parse(localStorage.getItem("roster-" + currentClass));
 
 			if (roster === null) {
 				noConnectionNotice();
