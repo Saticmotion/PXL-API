@@ -403,8 +403,9 @@ function getClasses() {
 		error: function() {
 			classes = JSON.parse(localStorage.getItem("classes"));
 
-			if (classes === "") {
+			if (classes === null) {
 				noConnectionNotice();
+				$("#roster-back-button").on("click", function() {createClassList(classes);});
 			} else {
 				createClassList(classes);
 			}
@@ -439,6 +440,7 @@ function getRoster(target) {
 
 			if (roster === null) {
 				noConnectionNotice();
+				$("#roster-back-button").on("click", function() {createClassList(classes);});
 			} else {
 				refreshRoster();
 			}
