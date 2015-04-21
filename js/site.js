@@ -17,11 +17,18 @@ $(document).ready(function() {
 
 	$(".button-collapse").sideNav();
 
-	getClasses();
+	var fav = getFavorite();
+
+	if (fav === null) {
+		getClasses();
+	} else {
+		getRoster(fav);
+	}
 });
 
 function compileTemplates() {
 	templates.classList = Handlebars.compile($("#class-template").html());
+	templates.favoritesList = Handlebars.compile($("#favorites-template").html());
 	templates.classEntry = Handlebars.compile($("#class-item-template").html());
 	templates.roster = Handlebars.compile($("#roster-template").html());
 	templates.rosterDay = Handlebars.compile($("#roster-day-template").html());
@@ -40,9 +47,22 @@ function compileTemplates() {
 //==========Classlist==========
 
 function createClassList(classEntries) {
+	if(classEntries === undefined) {
+		getClasses();
+		return;
+	}
+
 	clearMain();
 
 	currentScreen = ScreensEnum.CLASSLIST;
+
+	var fav = getFavorite()
+
+	//Insert our favorited class at the very top.
+	if (fav !== null) {
+		appendTemplate("favoritesList", {}, $("#main"));		
+		appendTemplate("classEntry", {"klas": fav}, $("#favorites-list"));
+	}
 
 	appendTemplate("classList", {}, $("#main"));
 
@@ -50,7 +70,7 @@ function createClassList(classEntries) {
 		appendTemplate("classEntry", entry, $("#class-list"));
 	});
 
-	$(".class-link").on("click", getRoster);
+	$(".class-link").on("click", loadRoster);
 }
 
 $("#search").on("input", function() {
@@ -77,50 +97,6 @@ function searchClassList(searchTerm) {
 	});
 
 	return matches;
-}
-
-//=====Miscellaneous display stuff======
-
-function noConnectionNotice() {
-	clearMain();
-	appendTemplate("noConnectionNotice", {}, $("#main"));
-}
-
-function loadingIndicator() {
-	//TODO(Simon): Find a way to introduce an artificial delay here
-	clearMain();
-	appendTemplate("loadingIndicator", {}, $("#main"));
-}
-
-function clearMain() {
-	$("#main").empty();
-}
-
-function insertFavoriteButton() {
-	var saved = localStorage.getItem("favorited");
-	var favorited = saved === currentClass;
-
-	$("#favorite").remove();
-	appendTemplate("favoriteButton", {"favorited" : favorited}, $("#roster"));
-
-	$("#favorite .btn").on("click", function () {
-		toggleFavoriteButton();
-	});
-}
-
-function toggleFavoriteButton() {
-	var button = $("#favorite .btn");
-
-	//TODO(Simon): This is ugly, fix this.
-	if ($(".mdi-action-favorite", button).exists()){
-		localStorage.setItem("favorited", "");
-		button.html('<i class="mdi-action-favorite-outline left"></i>Opslaan')
-		console.log("unselect");
-	} else {
-		localStorage.setItem("favorited", currentClass);		
-		button.html('<i class="mdi-action-favorite left"></i>Opgeslagen')
-		console.log("select");
-	}
 }
 
 //==========Roster==========
@@ -171,6 +147,11 @@ function searchRoster(searchTerm) {
 			$(this).removeClass(highlightClass);
 		}
 	});
+}
+
+function loadRoster(target) {
+	var selectedClass = target.currentTarget.dataset["class"];
+	getRoster(selectedClass);
 }
 
 function refreshRoster() {
@@ -318,72 +299,65 @@ function compareCourse(a, b) {
 	return 0;
 }
 
-//==========Helpers==========
+//=========Favorites=========
 
-function prependTemplate(templateName, data, target) {
-	var html = templates[templateName](data);
-	target.prepend(html);
+function getFavorite() {
+	return localStorage.getItem("favorited");
 }
 
-function appendTemplate(templateName, data, target) {
-	var html = templates[templateName](data);
-	target.append(html);
+function setFavorite(favorite) {
+	localStorage.setItem("favorited", favorite);
 }
 
-function replaceAll(find, replace, str) {
-	return str.replace(new RegExp(find, 'g'), replace);
+function removeFavorite() {
+	localStorage.removeItem("favorited");
 }
 
-function replaceWildcards(searchTerm) {
-	searchTerm = replaceAll('\\*', '.*', searchTerm); //Replace * with match any string of any length
-	searchTerm = replaceAll('\\?', '.', searchTerm); //Replace ? with match any single character
-	searchTerm = replaceAll('[/\\\\]', '', searchTerm); //Remove forward and backslashes, because they interfere with regex searches.
-	return searchTerm;
+function insertFavoriteButton() {
+	var saved = localStorage.getItem("favorited");
+	var favorited = saved === currentClass;
+
+	$("#favorite").remove();
+	appendTemplate("favoriteButton", {"favorited" : favorited}, $("#roster"));
+
+	$("#favorite .btn").on("click", function () {
+		toggleFavoriteButton();
+	});
 }
 
-function findWithAttr(array, attr, value) {
-    for(var i = 0; i < array.length; i += 1) {
-        if(array[i][attr] === value) {
-            return array[i];
-        }
-    }
+function toggleFavoriteButton() {
+	var button = $("#favorite .btn");
+
+	//TODO(Simon): This is ugly, fix this.
+	if ($(".mdi-action-favorite", button).exists()){
+		removeFavorite();
+		button.html('<i class="mdi-action-favorite-outline left"></i>Opslaan')
+		console.log("unselect");
+	} else {
+		setFavorite(currentClass);		
+		button.html('<i class="mdi-action-favorite left"></i>Opgeslagen')
+		console.log("select");
+	}
 }
 
-Date.days = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+//=====Miscellaneous display stuff======
 
-Date.prototype.getUnixTime = function() { 
-	//Goes from milliseconds to seconds.
-	return this.getTime() / 1000 | 0;
-};
+function noConnectionNotice() {
+	clearMain();
+	appendTemplate("noConnectionNotice", {}, $("#main"));
+}
 
-Date.prototype.getDayName = function() {
-	return Date.days[this.getDay()];
-};
+function loadingIndicator() {
+	//TODO(Simon): Find a way to introduce an artificial delay here
+	clearMain();
+	appendTemplate("loadingIndicator", {}, $("#main"));
+}
 
-Date.prototype.getDayInThisWeek = function(dayIndex) {
-	//First, subtract days to day 0, then add the day we want.
-	return this.addDays(-this.getDay() + dayIndex);
-};
+function clearMain() {
+	$("#main").empty();
+}
 
-Date.prototype.addDays = function(days){	
-    var dat = new Date(this.valueOf());
-    dat.setDate(dat.getDate() + days);
-    return dat;
-};
-
-Date.parseCourseDate = function(course) {
-	var day = course.datum2.substring(4, 6);
-	var month = course.datum2.substring(2, 4);
-	var year = '20' + course.datum2.substring(0, 2); //prefix 20, so JS knows we mean 2015 and not 1915. Will cause a bug after 2100
-	return new Date(year, month - 1, day);
-};
-
-//extend jQuery with a function to check if a selector returned any element.
-$.fn.exists = function () {
-	return this.length !== 0;
-};
-
-//Everything below here are functions to create mock data. 
+//=========API Calls=========
 
 function getClasses() {
 	var scriptUrl = baseUrl + "klassen";
@@ -413,8 +387,8 @@ function getClasses() {
 	});
 }
 
-function getRoster(target) {
-	currentClass = target.currentTarget.dataset["class"];
+function getRoster(selectedClass) {
+	currentClass = selectedClass;
 	//TODO(Simon): fix this once API has the option to get by date. 
 	//%25 passes the procent sign, the wildcard for SQL LIKE
 	var scriptUrl = baseUrl + "klassen/" + currentClass + "/vakken/%25";
@@ -447,3 +421,67 @@ function getRoster(target) {
 		}
 	});
 }
+
+//==========Helpers==========
+
+function prependTemplate(templateName, data, target) {
+	var html = templates[templateName](data);
+	target.prepend(html);
+}
+
+function appendTemplate(templateName, data, target) {
+	var html = templates[templateName](data);
+	target.append(html);
+}
+
+function replaceAll(find, replace, str) {
+	return str.replace(new RegExp(find, 'g'), replace);
+}
+
+function replaceWildcards(searchTerm) {
+	searchTerm = replaceAll('\\*', '.*', searchTerm); //Replace * with match any string of any length
+	searchTerm = replaceAll('\\?', '.', searchTerm); //Replace ? with match any single character
+	searchTerm = replaceAll('[/\\\\]', '', searchTerm); //Remove forward and backslashes, because they interfere with regex searches.
+	return searchTerm;
+}
+
+function findWithAttr(array, attr, value) {
+    for(var i = 0; i < array.length; i += 1) {
+        if(array[i][attr] === value) {
+            return array[i];
+        }
+    }
+}
+
+Date.prototype.getUnixTime = function() { 
+	//Goes from milliseconds to seconds.
+	return this.getTime() / 1000 | 0;
+};
+
+Date.days = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+Date.prototype.getDayName = function() {
+	return Date.days[this.getDay()];
+};
+
+Date.prototype.getDayInThisWeek = function(dayIndex) {
+	//First, subtract days to day 0, then add the day we want.
+	return this.addDays(-this.getDay() + dayIndex);
+};
+
+Date.prototype.addDays = function(days){	
+    var dat = new Date(this.valueOf());
+    dat.setDate(dat.getDate() + days);
+    return dat;
+};
+
+Date.parseCourseDate = function(course) {
+	var day = course.datum2.substring(4, 6);
+	var month = course.datum2.substring(2, 4);
+	var year = '20' + course.datum2.substring(0, 2); //prefix 20, so JS knows we mean 2015 and not 1915. Will cause a bug after 2100
+	return new Date(year, month - 1, day);
+};
+
+//extend jQuery with a function to check if a selector returned any element.
+$.fn.exists = function () {
+	return this.length !== 0;
+};
