@@ -1,16 +1,20 @@
 "use strict";
 
-var baseUrl = "http://localhost/pxl-api-opendata/v1/" /*"http://data.pxl.be/roosters/v1/"*/;
+var baseUrl = "http://data.pxl.be/roosters/v1/";
 var templates = {};
 
 var classes;
 var currentClass;
 var roster;
 
-var ScreensEnum = Object.freeze({CLASSLIST : 0, ROSTER : 1, ROSTER_TABBED : 2});
+var ScreensEnum = Object.freeze({
+	CLASSLIST : 0, 
+	ROSTER : 1, 
+	ROSTER_TABBED : 2
+});
 var currentScreen;
 
-var tabbedRosterMinSize = 600;
+var tabbedRosterMinSize = 720;
 
 $(document).ready(function() {
 	compileTemplates();
@@ -42,6 +46,8 @@ function compileTemplates() {
 	templates.noConnectionNotice = Handlebars.compile($("#no-connection-notice-template").html());
 	templates.loadingIndicator = Handlebars.compile($("#loading-indicator-template").html());
 	templates.favoriteButton = Handlebars.compile($("#favorite-button-template").html());
+
+	$('script[type="text/x-handlebars-template"]').remove();
 }
 
 //==========Classlist==========
@@ -79,7 +85,8 @@ $("#search").on("input", function() {
 		var matches = searchClassList(val);
 		createClassList(matches);
 	}
-	else if (currentScreen === ScreensEnum.ROSTER) {
+	else if (currentScreen === ScreensEnum.ROSTER ||
+		currentScreen === ScreensEnum.ROSTER_TABBED) {
 		var val = $(this).val();
 		searchRoster(val);
 	}
@@ -391,7 +398,7 @@ function getRoster(selectedClass) {
 	currentClass = selectedClass;
 	//TODO(Simon): fix this once API has the option to get by date. 
 	//%25 passes the procent sign, the wildcard for SQL LIKE
-	var scriptUrl = baseUrl + "klassen/" + currentClass + "/vakken/%25";
+	var scriptUrl = baseUrl + "klassen/" + currentClass + "/rooster";
 	
 	loadingIndicator();
 
