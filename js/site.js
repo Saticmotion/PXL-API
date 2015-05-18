@@ -166,7 +166,7 @@ function refreshRoster() {
 
 	currentScreen = ScreensEnum.ROSTER;
 
-	appendTemplate("roster", {}, $("#main"));
+	appendTemplate("roster", {"klas": currentClass}, $("#main"));
 	insertFavoriteButton();
 
 	$("#roster-back-button").on("click", function() {createClassList(classes);});

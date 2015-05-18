@@ -25,6 +25,11 @@ main {
 	background-color: #4CAF50;
 }
 
+.class-header {
+	font-size: 2rem;
+	margin-top; 20px;
+}
+
 #favorite {
 	padding-bottom: 10px;
 }
