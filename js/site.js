@@ -199,7 +199,22 @@ function insertRosterCourse(course) {
 
 	var columnForDate = $("#roster").children(getDayAttribute(date)).children(".row");
 
-	//TODO(Simon): Fix display of times
+	var vanLength = course.van_uur.length;
+	var totLength = course.tot_uur.length;
+	var van = course.van_uur.substring(0, vanLength - 2) + ":" + course.van_uur.substring(vanLength - 2, vanLength);
+	var tot = course.tot_uur.substring(0, totLength - 2) + ":" + course.tot_uur.substring(totLength - 2, totLength);
+
+	if (van.length == 4) {
+		van = "0" + van;
+	}
+
+	if (tot.length == 4) {
+		tot = "0" + tot;
+	}
+
+	course.van_uur = van;
+	course.tot_uur = tot;
+
 	appendTemplate("rosterCourse", course, columnForDate);
 }
 
