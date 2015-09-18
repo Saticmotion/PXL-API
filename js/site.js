@@ -8,8 +8,8 @@ var currentClass;
 var roster;
 
 var ScreensEnum = Object.freeze({
-	CLASSLIST : 0, 
-	ROSTER : 1, 
+	CLASSLIST : 0,
+	ROSTER : 1,
 	ROSTER_TABBED : 2
 });
 var currentScreen;
@@ -66,7 +66,7 @@ function createClassList(classEntries) {
 
 	//Insert our favorited class at the very top.
 	if (fav !== null) {
-		appendTemplate("favoritesList", {}, $("#main"));		
+		appendTemplate("favoritesList", {}, $("#main"));
 		appendTemplate("classEntry", {"klas": fav}, $("#favorites-list"));
 	}
 
@@ -117,7 +117,7 @@ $(window).resize(function(){
 		if (window.matchMedia("(min-width:" + tabbedRosterMinSize + "px)").matches){
 			return;
 		}
-		
+
 		refreshRoster();
 	}
 
@@ -202,7 +202,7 @@ function insertRosterCourse(course) {
 	//TODO(Simon): Fix display of times
 	appendTemplate("rosterCourse", course, columnForDate);
 }
- 
+
 function insertRosterDay(date) {
 	appendTemplate("rosterDay", {"date":date.getUnixTime()}, $("#roster"));
 
@@ -244,11 +244,11 @@ function getDayAttribute(date) {
 }
 
 function expandCourse() {
-	var olodID = $(this).data("course");
-	var course = findWithAttr(roster, 'code_olod', olodID);
-	
+	var rowID = $(this).data("rowid").toString();
+	var course = findWithAttr(roster, 'ROWID', rowID);
+
 	course.weekday = Date.parseCourseDate(course).getDayName();
-	
+
 	$(".modal").remove();
 	appendTemplate("courseModal", course, $("body"));
 
@@ -282,17 +282,17 @@ function compareCourse(a, b) {
 		return 1;
 	}
 	//From here on dates are equal, so compare hours
-	if (a.van_uur < b.van_uur) {
+	if (parseInt(a.van_uur, 10) < parseInt(b.van_uur, 10)) {
 		return -1;
 	}
-	if (a.van_uur > b.van_uur) {
+	if (parseInt(a.van_uur, 10) > parseInt(b.van_uur, 10)) {
 		return 1;
 	}
 	//From here on, begin hour is equal, so compare end hour
-	if (a.tot_uur < b.tot_uur) {
+	if (parseInt(a.tot_uur, 10) < parseInt(b.tot_uur, 10)) {
 		return -1;
 	}
-	if (a.tot_uur > b.tot_uur) {
+	if (parseInt(a.tot_uur, 10) > parseInt(b.tot_uur, 10)) {
 		return 1;
 	}
 	//They have equal hours, so compare by name
@@ -304,6 +304,20 @@ function compareCourse(a, b) {
 	}
 
 	return 0;
+}
+
+function filterWeek(courses) {
+	var currentWeek = new Date().getWeekNumber() + 1;
+
+	var i = courses.length
+	while(i--) {
+		var date = Date.parseCourseDate(courses[i]);
+		if(date.getWeekNumber() != currentWeek) {
+			courses.splice(i, 1)
+		}
+	}
+
+	return courses;
 }
 
 //=========Favorites=========
@@ -341,7 +355,7 @@ function toggleFavoriteButton() {
 		button.html('<i class="mdi-action-favorite-outline left"></i>Opslaan')
 		console.log("unselect");
 	} else {
-		setFavorite(currentClass);		
+		setFavorite(currentClass);
 		button.html('<i class="mdi-action-favorite left"></i>Opgeslagen')
 		console.log("select");
 	}
@@ -396,10 +410,10 @@ function getClasses() {
 
 function getRoster(selectedClass) {
 	currentClass = selectedClass;
-	//TODO(Simon): fix this once API has the option to get by date. 
+	//TODO(Simon): fix this once API has the option to get by date.
 	//%25 passes the procent sign, the wildcard for SQL LIKE
 	var scriptUrl = baseUrl + "klassen/" + currentClass + "/rooster";
-	
+
 	loadingIndicator();
 
 	$.ajax({
@@ -410,10 +424,11 @@ function getRoster(selectedClass) {
 		success: function(data) {
 			roster = JSON.parse(data);
 			roster.sort(compareCourse);
+			roster = filterWeek(roster);
 			roster = deleteDuplicateCourses(roster);
 
 			localStorage.setItem("roster-" + currentClass, JSON.stringify(roster));
-			
+
 			refreshRoster();
 		},
 		error: function() {
@@ -460,12 +475,13 @@ function findWithAttr(array, attr, value) {
     }
 }
 
-Date.prototype.getUnixTime = function() { 
+Date.prototype.getUnixTime = function() {
 	//Goes from milliseconds to seconds.
 	return this.getTime() / 1000 | 0;
 };
 
 Date.days = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+
 Date.prototype.getDayName = function() {
 	return Date.days[this.getDay()];
 };
@@ -475,10 +491,17 @@ Date.prototype.getDayInThisWeek = function(dayIndex) {
 	return this.addDays(-this.getDay() + dayIndex);
 };
 
-Date.prototype.addDays = function(days){	
+Date.prototype.addDays = function(days){
     var dat = new Date(this.valueOf());
     dat.setDate(dat.getDate() + days);
     return dat;
+};
+
+Date.prototype.getWeekNumber = function(){
+    var d = new Date(+this);
+    d.setHours(0,0,0);
+    d.setDate(d.getDate()+4-(d.getDay()||7));
+    return Math.ceil((((d-new Date(d.getFullYear(),0,1))/8.64e7)+1)/7);
 };
 
 Date.parseCourseDate = function(course) {
