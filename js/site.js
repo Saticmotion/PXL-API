@@ -199,7 +199,22 @@ function insertRosterCourse(course) {
 
 	var columnForDate = $("#roster").children(getDayAttribute(date)).children(".row");
 
-	//TODO(Simon): Fix display of times
+	var vanLength = course.van_uur.length;
+	var totLength = course.tot_uur.length;
+	var van = course.van_uur.substring(0, vanLength - 2) + ":" + course.van_uur.substring(vanLength - 2, vanLength);
+	var tot = course.tot_uur.substring(0, totLength - 2) + ":" + course.tot_uur.substring(totLength - 2, totLength);
+
+	if (van.length == 4) {
+		van = "0" + van;
+	}
+
+	if (tot.length == 4) {
+		tot = "0" + tot;
+	}
+
+	course.van_uur = van;
+	course.tot_uur = tot;
+
 	appendTemplate("rosterCourse", course, columnForDate);
 }
 
@@ -244,8 +259,8 @@ function getDayAttribute(date) {
 }
 
 function expandCourse() {
-	var olodID = $(this).data("course");
-	var course = findWithAttr(roster, 'code_olod', olodID);
+	var rowID = $(this).data("rowid").toString();
+	var course = findWithAttr(roster, 'ROWID', rowID);
 
 	course.weekday = Date.parseCourseDate(course).getDayName();
 
@@ -282,17 +297,17 @@ function compareCourse(a, b) {
 		return 1;
 	}
 	//From here on dates are equal, so compare hours
-	if (a.van_uur < b.van_uur) {
+	if (parseInt(a.van_uur, 10) < parseInt(b.van_uur, 10)) {
 		return -1;
 	}
-	if (a.van_uur > b.van_uur) {
+	if (parseInt(a.van_uur, 10) > parseInt(b.van_uur, 10)) {
 		return 1;
 	}
 	//From here on, begin hour is equal, so compare end hour
-	if (a.tot_uur < b.tot_uur) {
+	if (parseInt(a.tot_uur, 10) < parseInt(b.tot_uur, 10)) {
 		return -1;
 	}
-	if (a.tot_uur > b.tot_uur) {
+	if (parseInt(a.tot_uur, 10) > parseInt(b.tot_uur, 10)) {
 		return 1;
 	}
 	//They have equal hours, so compare by name
@@ -307,14 +322,17 @@ function compareCourse(a, b) {
 }
 
 function filterWeek(courses) {
-	var currentWeek = new Date().getWeekNumber();
+	var currentWeek = new Date().getWeekNumber() + 1;
 
-	i = courses.length
+	var i = courses.length
 	while(i--) {
-		if(courses[i].getWeekNumber != currentWeek) {
+		var date = Date.parseCourseDate(courses[i]);
+		if(date.getWeekNumber() != currentWeek) {
 			courses.splice(i, 1)
 		}
 	}
+
+	return courses;
 }
 
 //=========Favorites=========
@@ -421,8 +439,8 @@ function getRoster(selectedClass) {
 		success: function(data) {
 			roster = JSON.parse(data);
 			roster.sort(compareCourse);
-			roster = deleteDuplicateCourses(roster);
 			roster = filterWeek(roster);
+			roster = deleteDuplicateCourses(roster);
 
 			localStorage.setItem("roster-" + currentClass, JSON.stringify(roster));
 
